@@ -148,5 +148,43 @@ classDiagram
     SimpleModule --> LocalTimeSerializer : 添加
     SimpleModule --> ToStringSerializer : 添加
 ```
+### 扩展mvc架构的消息转换器
+前面知识配置了jackson的信息，但是还没有完成实现，由于后端发给前端的信息的json格式的，而包装发送json数据是mvc设置的，所以我们还需要在mvc配置类中加入扩展mvc架构信息转换器
+具体代码如下：
+```java
+/*
+    * 扩展mvc框架的消息转换器
+    * */
+    @Override
+    protected void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
+        //创建消息转换器对象
+        MappingJackson2HttpMessageConverter messageConverter = new MappingJackson2HttpMessageConverter();
+        //设置对象转换器，底层使用jackson将java转成json
+        messageConverter.setObjectMapper(new JacksonObjectMapper());
+        //将上面的消息转换器对象追加到mvc框架的转换器集合中
+        converters.add(0,messageConverter);
+    }
+```
+但是这里由于我们扩展了 SpringMVC 配置，导致 Spring Boot 自动配置失效了。 我们继承了一个 MVC 配置类，打破了默认的静态资源映射规则，在 Spring Boot 中（比如用 spring-boot-starter-web）：
+默认情况下，Spring Boot 自动帮你配置好静态资源访问路径，比如：
+/static/
 
+/public/
+
+/resources/
+
+/META-INF/resources/
+只要把 HTML、CSS、JS 放在 static 里，可以直接通过 URL 访问，无需自己写 addResourceHandlers()。但是！！ 一旦手动继承了 SpringMVC 配置，即使你只是重写 extendMessageConverters()，Spring Boot会认为你要接管整个SpringMVC配置！
+于是，Spring Boot默认的静态资源映射失效了。
+重写静态资源映射就可以了：
+```java
+/*
+    * 设置静态资源映射*/
+    @Override
+    protected void addResourceHandlers(ResourceHandlerRegistry registry) {
+        log.info("开始进行静态资源映射...");
+        registry.addResourceHandler("/backend/**").addResourceLocations("classpath:/static/backend/");
+        registry.addResourceHandler("/front/**").addResourceLocations("classpath:/static/front/");
+    }
+```
 
