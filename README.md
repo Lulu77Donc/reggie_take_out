@@ -250,5 +250,8 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
 long id = Thread.currentThread().getId();
 log.info("线程id：（）",id);
 ```
+运行可以看到是同个线程id
+![image](https://github.com/user-attachments/assets/3005ec8a-6813-4287-988f-e625963e2aa3)
+
 
 
