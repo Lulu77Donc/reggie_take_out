@@ -188,3 +188,67 @@ classDiagram
     }
 ```
 
+## 公共字段自动填充、
+前面我们完成后台系统员工管理功能开发，在新增员工时需要设置创建时间、创建人、修改时间、修改人等字段，在编辑员工时需要设置修改时间和修改人等字段，这些属于公共字段
+能不能直接对这些公共字段在某一个地方统一处理，来简化开发？
+可以用Mybatis Plus提供的公共字段自动填充功能（实际上也可以用Spring自带的AOP功能实现）
+
+### 1、在实体类的属性上加入@TableField注解，指定自动填充的策略
+```java
+@TableField(fill = FieldFill.INSERT)//插入时填充字段
+    private LocalDateTime createTime;
+
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updateTime;
+
+    @TableField(fill = FieldFill.INSERT)
+    private Long createUser;
+
+    @TableField(fill = FieldFill.INSERT_UPDATE)//插入和更新时填充字段
+    private Long updateUser;
+```
+### 2、按照框架要求编写元数据对象处理器，在此类中统一为公共字段赋值，此类需要实现MetaObjectHandler接口
+```java
+/*
+ * 自定义原数组对象处理器*/
+@Component
+@Slf4j
+public class MyMetaObjectHandler implements MetaObjectHandler {
+    //这里metaObject实际上是元数据
+    /*
+     * 插入操作，自动填充*/
+    @Override
+    public void insertFill(MetaObject metaObject) {
+        log.info("公共字段自动填充[insert]...");
+        log.info(metaObject.toString());
+        metaObject.setValue("createTime", LocalDateTime.now());
+        metaObject.setValue("updateTime",LocalDateTime.now());
+        metaObject.setValue("createUser",new Long(1));//由于我们拿不到request请求中的session，无法获得当前用户的id，这里先用固定属性
+        metaObject.setValue("updateUser",new Long(1));
+    }
+
+    /*
+     * 更新操作，自动填充*/
+    @Override
+    public void updateFill(MetaObject metaObject) {
+        log.info("公共字段自动填充[update]...");
+        log.info(metaObject.toString());
+        metaObject.setValue("updateTime",LocalDateTime.now());
+        metaObject.setValue("updateUser",new Long(1));
+    }
+}
+```
+这样就可以不用每次set公共属性，之前更新员工信息和新增员工信息中对应的代码也可以注释掉了
+
+由于我们拿不到request请求中的session，无法获得当前用户的id，所以不够完全，这里需要用ThreadLocal线程技术去实现
+客户端每次发送http请求，对应的服务端都会分配一个新的线程来处理，在处理过程中设计下面类中的方法都属于同一个线程：
+1、LoginCheckFilter的doFilter方法
+2、EmployeeController的update方法
+3、MyMetaObjectHandle的updateFill方法
+可以在上面的三个方法中分别加入下面代码（获取当前线程id）：
+```java
+long id = Thread.currentThread().getId();
+log.info("线程id：（）",id);
+```
+
+
