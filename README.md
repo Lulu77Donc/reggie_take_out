@@ -240,6 +240,7 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
 ```
 这样就可以不用每次set公共属性，之前更新员工信息和新增员工信息中对应的代码也可以注释掉了
 
+### ThreadLocal
 由于我们拿不到request请求中的session，无法获得当前用户的id，所以不够完全，这里需要用ThreadLocal线程技术去实现
 客户端每次发送http请求，对应的服务端都会分配一个新的线程来处理，在处理过程中设计下面类中的方法都属于同一个线程：
 1、LoginCheckFilter的doFilter方法
@@ -253,5 +254,74 @@ log.info("线程id：（）",id);
 运行可以看到是同个线程id
 ![image](https://github.com/user-attachments/assets/3005ec8a-6813-4287-988f-e625963e2aa3)
 
+#### 什么是ThreadLocal？
+ThreadLocal并不是一个Thread，而是Thread的局部变量。当使用ThreadLocal维护变量时，ThreadLocal为每个使用该变量的线程提供独立的变量副本
+所以每一个线程都可以独立地改变自己的副本，而不会影响其他线程对应的副本
+ThreadLocal为每一个线程提供单独一份存储空间，具有线程隔离的效果，只有在线程内才能获取对应的值，线程外则不能访问
 
+ThreadLocal常用方法：
+public void set(T value) 设置当前线程的线程局部变量的值
+public T get() 返回当前线程所对应的线程局部变量的值
 
+那么我们就可以在LoginCheckFilter中的doFilter方法中获取当前登录用户的id，并调用set来设置当前线程局部变量的值（用户id），
+然后在MyMetaObjectHandler的updateFill方法中调用get来获取线程对应局部变量值（用户id），也算是曲线救国了hhh
+
+实现步骤：
+1、编写BaseContext工具类，基于ThreadLocal封装的工具类
+```java
+/*
+* 基于ThreadLocal封装工具类，用户保存和获取当前登录用户id*/
+public class BaseContext {
+    private static ThreadLocal<Long> threadLocal = new ThreadLocal<>();
+
+    public void setCurrentId(Long id){
+        threadLocal.set(id);
+    }
+
+    public static Long getCurrentId(){
+        return threadLocal.get();
+    }
+}
+```
+2、在LoginCheckFilter的doFilter方法中调用BaseContext来设置当前登录用户的id
+```java
+if(request.getSession().getAttribute("employee") != null){
+            log.info("用户已登录，用户id为：{}",request.getSession().getAttribute("employee"));
+            Long empId = (Long) request.getSession().getAttribute("employee");
+            BaseContext.setCurrentId(empId);
+
+            filterChain.doFilter(request,response);
+            return;
+        }
+```
+3、在MyMetaObjectHandler的方法中调用BaseContext获取登录用户id
+```java
+public class MyMetaObjectHandler implements MetaObjectHandler {
+    //这里metaObject实际上是元数据
+    /*
+    * 插入操作，自动填充*/
+    @Override
+    public void insertFill(MetaObject metaObject) {
+        log.info("公共字段自动填充[insert]...");
+        log.info(metaObject.toString());
+        metaObject.setValue("createTime", LocalDateTime.now());
+        metaObject.setValue("updateTime",LocalDateTime.now());
+        metaObject.setValue("createUser",BaseContext.getCurrentId());
+        metaObject.setValue("updateUser",BaseContext.getCurrentId());
+    }
+
+    /*
+    * 更新操作，自动填充*/
+    @Override
+    public void updateFill(MetaObject metaObject) {
+        log.info("公共字段自动填充[update]...");
+        log.info(metaObject.toString());
+
+        long id = Thread.currentThread().getId();
+        log.info("线程id为：{}",id);
+
+        metaObject.setValue("updateTime",LocalDateTime.now());
+        metaObject.setValue("updateUser",BaseContext.getCurrentId());
+    }
+}
+```
