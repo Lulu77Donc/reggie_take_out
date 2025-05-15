@@ -42,4 +42,24 @@ public class CategoryController {
         return R.success(pageInfo);
     }
 
+    /*
+    * 根据id删除分类*/
+    @DeleteMapping
+    public R<String> delete(Long ids){
+        log.info("删除分类：{}",ids);
+        //categoryService.removeById(ids);
+        categoryService.remove(ids);
+        //判断这个分类是否关联菜品或者套餐，如果有则不能删除
+        return R.success("分类信息删除成功");
+    }
+
+    /*
+    * 根据id修改分类信息*/
+    @PutMapping
+    public R<String> update(@RequestBody Category category){
+        log.info("修改分类信息：{}",category);
+        categoryService.updateById(category);
+        return R.success("修改分类成功");
+    }
+
 }
