@@ -325,3 +325,64 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
     }
 }
 ```
+## 文件上传和下载
+文件上传，也称为upload，是指将本地图片，视频，音频等文件上传到服务器上，可以供其他用户浏览或下载的过程
+
+文件上传时对页面的form表单有如下要求：
+method="post" 采用post方式提交数据
+enctype="multipart/form-data" 采用multipart格式上传文件
+type="file" 使用input的file控件上传
+
+服务端要接收客户端页面上传的文件，通常会使用Apache的两个组件：
+commons-fileupload
+commons-io
+
+Spring框架在spring-web包中对文件上传进行了封装，大大简化了服务端代码，
+我们只需要在Controller的方法中声明一个MultipartFile的参数即可接收上传的文件
+
+```java
+public class CommonController {
+
+    @Value("${reggie.path}")
+    private String basePath;
+
+    /*
+    * 文件上传*/
+    @PostMapping("/upload")
+    public R<String> upload(MultipartFile file) {
+        //file是一个临时文件，需要转存到指定位置，否则本次请求完成后临时文件会删除
+        log.info(file.toString());
+
+        //原始文件名
+        String orginalFilename = file.getOriginalFilename();
+        //将原始名的.jpg截取出来
+        String suffix = orginalFilename.substring(orginalFilename.lastIndexOf("."));
+
+        //使用UUID重新生成文件名，防止文件名称重复造成文件覆盖
+        String fileName = UUID.randomUUID().toString()+suffix;
+
+        //创建一个目录对象
+        File dir = new File(basePath);
+        //判断当前目录是否存在
+        if(!dir.exists()){
+            //目录不存在，需要创建
+            dir.mkdirs();
+        }
+
+
+        try{
+            //将临时文件转存到指定位置
+            file.transferTo(new File(basePath+fileName));
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+        return null;
+    }
+}
+```
+
+
+文件下载，也叫download，是指将文件从服务器传输到本地计算机的过程
+一种以附件形式下载
+另一种直接在浏览器中打开
+本质上是服务器将文件以流的形式写回浏览器的过程
