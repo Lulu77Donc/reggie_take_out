@@ -376,7 +376,7 @@ public class CommonController {
         }catch (IOException e){
             e.printStackTrace();
         }
-        return null;
+        return R.success(fileName);
     }
 }
 ```
@@ -386,3 +386,42 @@ public class CommonController {
 一种以附件形式下载
 另一种直接在浏览器中打开
 本质上是服务器将文件以流的形式写回浏览器的过程
+```java
+ /**
+     * 文件下载
+     * @param name
+     * @param response
+     */
+    @GetMapping("/download")
+    public void download(String name, HttpServletResponse response){
+
+        try{
+            //输入流，通过输入流读取文件内容
+            FileInputStream fileInputStream = new FileInputStream(new File(basePath+name));
+
+            //输出流，通过输出流将文件写回浏览器，在浏览器展示图片
+            ServletOutputStream outputStream = response.getOutputStream();
+
+            response.setContentType("image/jpg");
+
+            int len = 0;
+            byte[] bytes = new byte[1024];
+            while((len=fileInputStream.read(bytes))!= -1){
+                outputStream.write(bytes,0,len);
+                outputStream.flush();
+            }
+            //关闭资源
+            outputStream.close();
+            fileInputStream.close();
+
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+
+
+
+
+    }
+}
+```
+这样就可以成功回显图片了
