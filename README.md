@@ -425,3 +425,15 @@ public class CommonController {
 }
 ```
 这样就可以成功回显图片了
+![image](https://github.com/user-attachments/assets/56c50870-b647-47d3-99c2-38a36393a81c)
+类图：
+![image](https://github.com/user-attachments/assets/bdb759b2-0e13-432c-883f-18a706cbb7ed)
+文件上传：
+![image](https://github.com/user-attachments/assets/e600fb84-65d6-4f18-ab17-488b382807f9)
+![image](https://github.com/user-attachments/assets/1f88d8c3-8dec-4cad-9304-6c7ecbddf504)
+
+文件下载：
+![image](https://github.com/user-attachments/assets/c544be8b-143f-400c-8495-79ef3e31dd7b)
+![image](https://github.com/user-attachments/assets/ae3c8f72-ca9a-4036-b627-a9a11c65b373)
+
+
