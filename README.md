@@ -436,4 +436,59 @@ public class CommonController {
 ![image](https://github.com/user-attachments/assets/c544be8b-143f-400c-8495-79ef3e31dd7b)
 ![image](https://github.com/user-attachments/assets/ae3c8f72-ca9a-4036-b627-a9a11c65b373)
 
+## 关于短信校验代码中HttpSession
+由于涉及到阿里云的短信服务，这里改成直接从服务端查看验证码
+代码中有一个关于session的问题：
+```java
+session.setAttribute("user",user.getId());
+```
+这一段代码中为什么session.setAttribute("user",user.getId())可以直接保存到前端浏览器的session，不是说session是保存到服务器吗？
+
+### 核心概念澄清
+HttpSession 数据确实只存储在服务器端（内存/Redis/数据库等）
+
+浏览器永远不会直接获取或存储 Session 数据，它只保存一个 Session ID（通常通过 Cookie）
+
+代码执行流程详解
+session.setAttribute("user", user.getId())
+
+将用户ID 存储在服务器的 Session 对象中（键为 "user"，值为用户ID）
+
+此时没有任何数据发送到浏览器！
+
+Session ID 的传递机制
+
+当第一次调用 request.getSession() 时，服务器会：
+
+创建一个唯一的 JSESSIONID（如 ABC123）
+
+在响应头中通过 Set-Cookie: JSESSIONID=ABC123 告诉浏览器保存此ID
+```http
+HTTP/1.1 200 OK
+Set-Cookie: JSESSIONID=ABC123; Path=/; HttpOnly
+```
+浏览器后续请求会自动携带此Cookie：
+```http
+GET /api/userinfo HTTP/1.1
+Cookie: JSESSIONID=ABC123
+```
+服务器如何关联数据
+
+当浏览器携带 JSESSIONID=ABC123 访问时：
+
+服务器通过 ABC123 找到对应的 HttpSession 对象
+
+然后从该对象中读取 getAttribute("user") 获取用户ID
+
+### 为什么看起来像是"保存到前端"？
+错觉来源：因为浏览器保存了 JSESSIONID Cookie，使得后续请求能自动关联到服务器的 Session 数据
+![image](https://github.com/user-attachments/assets/92ce8dca-7662-4e9a-9044-826ab3e27727)
+
+### 关键结论
+
+session.setAttribute() 只修改服务器端数据
+
+浏览器仅持有 JSESSIONID（无实际用户数据）
+
+如果浏览器禁用Cookie，Session 机制会失效（除非改用URL重写）
 
