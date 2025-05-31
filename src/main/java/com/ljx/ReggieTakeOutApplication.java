@@ -5,6 +5,7 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.ServletComponentScan;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @Slf4j
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @MapperScan("com.ljx.mapper") // 指定 Mapper 接口包扫描路径
 @ServletComponentScan//filter扫描
 @EnableTransactionManagement//开启事务支持
+@EnableCaching//开启spring cache注解方式缓存功能
 public class ReggieTakeOutApplication {
 
     public static void main(String[] args) {
